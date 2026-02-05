@@ -54,6 +54,7 @@ Platform engineering is the discipline of creating and managing an internal deve
 - [Mail Service Platform](#mailer-settings)
 - [Set up Docker Containers](#setup-containers)
 - [Create Docker Containers](#create-containers)
+- [Supervisord](#supervisord)
 - [GNU Make file recipes](#make-help)
 - [Use this Platform Repository for REST API project](#platform-usage)
 <br><br>
@@ -140,12 +141,46 @@ Before building the container you must copy that directory to:
 `./platform/nginx-php-8.3/docker/config/supervisor/conf.d`
 
 Make sure the copied conf.d contains at least the service files needed to run Nginx and PHP-FPM (for example, supervisor program entries for nginx and php-fpm).
-
 ```bash
-$ cd ./platform/nginx-php-8.3/docker/config/supervisor
-$ cp -vn conf.d-sample/nginx.conf conf.d-sample/php-fpm.conf conf.d/
-'conf.d-sample/nginx.conf' -> 'conf.d/nginx.conf'
-'conf.d-sample/php-fpm.conf' -> 'conf.d/php-fpm.conf'
+.
+├── platform
+│   ├── nginx-php-8.3
+│   │   ├── docker
+│   │   │   ├── config
+│   │   │   │   ├── nginx
+│   │   │   │   │   ├── conf.d
+│   │   │   │   │   │   └── default.conf # required
+│   │   │   │   │   ├── conf.d-sample
+│   │   │   │   │   │   └── default.conf
+│   │   │   │   │   └── nginx.conf # required
+│   │   │   │   ├── php
+│   │   │   │   │   ├── conf.d
+│   │   │   │   │   │   ├── fpm-pool.conf # required
+│   │   │   │   │   │   ├── php.ini # required
+│   │   │   │   │   │   └── xdebug.ini # optional if it in use
+│   │   │   │   │   └── conf.d-sample
+│   │   │   │   │       ├── fpm-pool.conf
+│   │   │   │   │       ├── php.ini
+│   │   │   │   │       └── xdebug.ini
+│   │   │   │   └── supervisor
+│   │   │   │       ├── conf.d
+│   │   │   │       │   ├── nginx.conf # required
+│   │   │   │       │   ├── php-fpm.conf # required
+│   │   │   │       │   └── worker.conf # optional if it in use
+│   │   │   │       ├── conf.d-sample
+│   │   │   │       │   ├── nginx.conf
+│   │   │   │       │   ├── php-fpm.conf
+│   │   │   │       │   └── worker.conf
+│   │   │   │       └── supervisord.conf # required
+│   │   │   ├── .env
+│   │   │   ├── docker-compose.yml
+│   │   │   └── Dockerfile
+│   │   │
+│   │   └── ...
+│   │
+│   └── ...
+│
+└── ...
 ```
 
 This approach lets developers run additional worker processes locally without changing the shared platform settings. If you need to update Nginx, PHP, or supervisord configurations on a running container, there are Makefile recipes in `./platform/nginx-php-8.3/Makefile` that can apply changes *(reload or update services)* without destroying and rebuilding the container. Check the Makefile for available targets and usage by executing `$ make help` in its directory.
@@ -356,6 +391,31 @@ $ yes | make apirest-destroy db-destroy mailhog-destroy
 <div style="with:100%;height:auto;text-align:center;">
     <img src="./resources/docs/images/make-containers-destroy.jpg">
 </div>
+
+### Container Information
+
+Remember that containers can be accesible from local IP. Use the Makefile recipe to watch container main information as the following example:
+```bash
+$ make apirest-info
+MY PROJECT - APIREST: NGINX - PHP 8.3
+Container ID.: 55c6c842acd0
+Name.........: myproj-mp-apirest-dev
+Image........: myproj-mp-apirest-dev:alpine3.22-nginx1.28-php8.3
+Memory.......: 128M
+Host.........: 127.0.0.1:7201
+Hostname.....: 192.168.1.41:7201
+Docker.Host..: 172.22.0.2
+NetworkID....: 4233a008c3be5e3d9fe673a5a02b457530454ff3d19b3d2d6d84142ccbaa34dc
+```
+<br>
+
+## <a id="supervisord"></a>Supervisord - Changes on the run
+
+Every change needed to be set on the run, either on NGINX or PHP, you can modify the file on the container and then restart the Supervisord service. Some changes would need to be reloaded after service has been restarted.
+```bash
+/var/www $ sudo supervisorctl restart nginx
+/var/www $ nginx -s reload
+```
 <br>
 
 ## <a id="make-help"></a>GNU Make file recipes
