@@ -29,12 +29,12 @@ dist-ssr
 
 # Repository
 /vault
-/platform/nginx-*/docker/config/php/conf.d/
-!/platform/nginx-*/docker/config/php/conf.d/.gitkeep
-/platform/nginx-*/docker/config/nginx/conf.d/
-!/platform/nginx-*/docker/config/nginx/conf.d/.gitkeep
-/platform/nginx-*/docker/config/supervisor/conf.d
-!/platform/nginx-*/docker/config/supervisor/conf.d/.gitkeep
+/platform/nginx-php-*/docker/config/php/conf.d/
+!/platform/nginx-php-*/docker/config/php/conf.d/.gitkeep
+/platform/nginx-php-*/docker/config/nginx/conf.d/
+!/platform/nginx-php-*/docker/config/nginx/conf.d/.gitkeep
+/platform/nginx-php-*/docker/config/supervisor/conf.d
+!/platform/nginx-php-*/docker/config/supervisor/conf.d/.gitkeep
 /resources/database/*
 !/resources/database/.gitkeep
 /resources/docs/apirest/project/*
