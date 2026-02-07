@@ -59,11 +59,11 @@ ENV PHP_V=$PHP_MODULE
 RUN apk add --no-cache \
   ${PHP_V} \
   ${PHP_V}-cli \
+  ${PHP_V}-fpm \
   ${PHP_V}-ctype \
   ${PHP_V}-curl \
   ${PHP_V}-dom \
   ${PHP_V}-fileinfo \
-  ${PHP_V}-fpm \
   ${PHP_V}-gd \
   ${PHP_V}-intl \
   ${PHP_V}-mbstring \
@@ -90,15 +90,13 @@ RUN apk add --no-cache \
   #${PHP_V}-mysqli \
   # Postgre
   ${PHP_V}-pgsql \
-  ${PHP_V}-pdo_pgsql \
+  ${PHP_V}-pdo_pgsql
   # MongoDB
   #${PHP_V}-mongodb \
   # Redis
   #${PHP_V}-redis \
   # XDebug
   #${PHP_V}-pecl-xdebug
-  # Sockets
-  ${PHP_V}-sockets
 
 # Install amqp via PECL for clients that use the native ext-amqp like RabbitMQ
 RUN apk add --no-cache rabbitmq-c
@@ -109,6 +107,11 @@ RUN set -eux; \
     php -m | grep -i amqp; \
     apk del .amqp-build-deps; \
     rm -rf /tmp/pear ~/.pearrc
+
+# Install PHP required extensions from Docker
+RUN docker-php-ext-install \
+  pcntl \
+  sockets
 
 # Clean up build dependencies to reduce image size
 RUN apk del .build-deps
