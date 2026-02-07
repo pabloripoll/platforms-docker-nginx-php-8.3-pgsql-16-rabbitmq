@@ -25,36 +25,37 @@ RUN addgroup -S --gid ${GID} ${GROUP} \
     && chmod u+s /bin/su \
     && echo "${USER} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-# Install main packages and remove default server definition
+# Install main required packages
 RUN apk add --no-cache \
   openrc \
   curl \
   wget \
   openssl \
   nginx \
-  zip \
-  nano \
-  git \
   libva-dev \
-  supervisor
-  # Audio & Video
+  # OS extras
+  git \
+  nano \
+  #zip \
   #ffmpeg \
+  # Process Control System
+  supervisor
 
 RUN set -xe \
     && apk add --no-cache --virtual .build-deps \
-        libzip-dev \
-        freetype-dev \
-        icu-dev \
-        libmcrypt-dev \
-        libjpeg-turbo-dev \
-        libpng-dev \
-        libxslt-dev \
-        patch \
-        openssh-client
+      $PHPIZE_DEPS \
+      libzip-dev \
+      freetype-dev \
+      icu-dev \
+      libmcrypt-dev \
+      libjpeg-turbo-dev \
+      libpng-dev \
+      libxslt-dev \
+      patch \
+      openssh-client
 
-# Install PHP and its extensions packages and remove default server definition
+# Install PHP and its extensions packages
 ENV PHP_V=$PHP_MODULE
-
 RUN apk add --no-cache \
   ${PHP_V} \
   ${PHP_V}-cli \
@@ -77,6 +78,7 @@ RUN apk add --no-cache \
   ${PHP_V}-xmlwriter \
   ${PHP_V}-simplexml \
   ${PHP_V}-zip \
+  ${PHP_V}-bcmath \
   ## Databases
   ${PHP_V}-pdo \
   # SQLite
@@ -89,27 +91,27 @@ RUN apk add --no-cache \
   # Postgre
   ${PHP_V}-pgsql \
   ${PHP_V}-pdo_pgsql \
-  postgresql-dev
   # MongoDB
   #${PHP_V}-mongodb \
   # Redis
   #${PHP_V}-redis \
-
-# Install PHP required extensions from Docker - add if needed: pdo_mysql pdo_pgsql
-RUN docker-php-ext-install \
-  zip \
-  gd \
-  bcmath \
-  sockets \
-  pcntl \
-  pdo
-
-# PHP required PECL extensions
-RUN apk add \
   # XDebug
   #${PHP_V}-pecl-xdebug
-  # RabbitMQ
-  ${PHP_V}-pecl-amqp
+  # Sockets
+  ${PHP_V}-sockets
+
+# Install amqp via PECL for clients that use the native ext-amqp like RabbitMQ
+RUN apk add --no-cache rabbitmq-c
+RUN set -eux; \
+    apk add --no-cache --virtual .amqp-build-deps $PHPIZE_DEPS rabbitmq-c-dev; \
+    pecl install amqp; \
+    docker-php-ext-enable amqp; \
+    php -m | grep -i amqp; \
+    apk del .amqp-build-deps; \
+    rm -rf /tmp/pear ~/.pearrc
+
+# Clean up build dependencies to reduce image size
+RUN apk del .build-deps
 
 # Configure NGINX and remove created its default html directory
 COPY config/nginx/nginx.conf /etc/nginx/nginx.conf
@@ -153,8 +155,8 @@ RUN chown -R ${USER}:${GROUP} /var/www /run /var/lib/nginx /var/log/nginx
 # Switch to use a non-root user from here on
 USER ${USER}
 
-# Expose port/s Nginx will listen - Add more as required: (9003 - Xdebug) - Removed for testing
-EXPOSE 80 443 8080
+# Expose as many ports as required - Nginx: 80 / SSL: 443 / Xdebug: 9003
+EXPOSE 80
 
 # Let supervisord start nginx & php-fpm
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
